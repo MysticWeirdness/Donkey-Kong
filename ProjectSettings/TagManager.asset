@@ -7,6 +7,7 @@ TagManager:
   - Win
   - Barrel
   - DespawnBarrels
+  - Ladder
   layers:
   - Default
   - TransparentFX
@@ -49,4 +50,7 @@ TagManager:
     locked: 0
   - name: Sprites
     uniqueID: 416377419
+    locked: 0
+  - name: Player
+    uniqueID: 2008310899
     locked: 0

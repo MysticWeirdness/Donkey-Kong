@@ -4,6 +4,11 @@ using UnityEngine;
 
 public class BarrelScript : MonoBehaviour
 {
+    private float startForce = 2f;
+    private void Start()
+    {
+        GetComponent<Rigidbody2D>().AddForce(Vector2.right * startForce, ForceMode2D.Impulse);
+    }
     private void OnCollisionEnter2D(Collision2D collision)
     {
         if (collision.gameObject.CompareTag("Player"))
