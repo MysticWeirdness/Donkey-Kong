@@ -1,6 +1,8 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using System.Threading.Tasks;
 
 public class PlayerMovement : MonoBehaviour
 {
@@ -8,11 +10,20 @@ public class PlayerMovement : MonoBehaviour
     private Rigidbody2D rb;
 
     private float movSpeed = 2f;
-    public bool onLadder = false;
-    public bool touchingLadder = false;
+    private bool onLadder = false;
+    private bool touchingLadder = false;
+    private bool isGrounded = true;
+    private bool canJump = true;
+    private float jumpForce = 0.14f; 
     private float ladderSpeed = 0.1f;
+
+    private Vector3 boxSize;
+    private float maxDistance;
+    public LayerMask mask;
     private void Awake()
     {
+        boxSize = new Vector2(0.2f, 0.1f);
+        maxDistance = -0.1f;
         controls = new InputControls();
         rb = GetComponent<Rigidbody2D>();
     }
@@ -28,24 +39,39 @@ public class PlayerMovement : MonoBehaviour
 
     private void FixedUpdate()
     {
+        if (canJump && controls.Controller.Jump.ReadValue<float>() >= 0.5f && isGrounded)
+        {
+            Debug.Log("Jumped");
+            rb.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
+            isGrounded = false;
+            canJump = false;
+            Timer(300);
+        }
+        isGrounded = GroundCheck();
         Vector2 movement = controls.Controller.Movement.ReadValue<Vector2>();
-        Vector2 horizontalMovement = new Vector2(movement.x, 0);
-        rb.velocity = horizontalMovement * movSpeed;
-
+        Vector2 horizontalMovement;
+        if(transform.position.y < -100)
+        {
+            SceneManager.LoadSceneAsync(SceneManager.GetActiveScene().buildIndex);
+        }
         if (onLadder)
         {
+            horizontalMovement = new Vector2(movement.x, 0);
             rb.gravityScale = 0;
+            rb.velocity = horizontalMovement * movSpeed;
         }
         else if (!onLadder)
         {
+            horizontalMovement = new Vector2(movement.x, rb.velocity.y);
             rb.gravityScale = 1;
+            rb.velocity = horizontalMovement * movSpeed;
         }
 
-        if (touchingLadder && !onLadder && controls.Controller.Interact.ReadValue<float>() == 1f)
+        if (touchingLadder && !onLadder && controls.Controller.Interact.ReadValue<float>() >= 0.5f && isGrounded)
         {
             onLadder = true;
         }
-        else if (touchingLadder && onLadder && controls.Controller.Interact.ReadValue<float>() == 1f)
+        else if (touchingLadder && onLadder && controls.Controller.Jump.ReadValue<float>() >= 0.5f)
         {
             onLadder = false;
         }
@@ -59,6 +85,27 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+    private async Task Timer(int timeInMilliseconds)
+    {
+        await Task.Delay(timeInMilliseconds);
+        canJump = true;
+    }
+    private void OnDrawGizmos()
+    {
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawCube(transform.position - transform.up * maxDistance, boxSize);
+    }
+    private bool GroundCheck()
+    {
+        if (Physics2D.BoxCast(transform.position, boxSize, 0, -transform.up, maxDistance, mask))
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
     private void OnTriggerEnter2D(Collider2D collision)
     {
         if (collision.gameObject.CompareTag("Ladder"))
